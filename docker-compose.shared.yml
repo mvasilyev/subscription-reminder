@@ -1,0 +1,23 @@
+# Вариант для сервера, где уже крутится Caddy в docker-сети PROXY_NETWORK:
+# контейнер цепляется к ней под именем subs-app, в чужой Caddyfile добавляется
+#   <домен> { reverse_proxy subs-app:8080 }
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - app-data:/data
+    mem_limit: 320m
+    networks:
+      default:
+      proxy:
+        aliases: [subs-app]
+
+networks:
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK}
+
+volumes:
+  app-data:

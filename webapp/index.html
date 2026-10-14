@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Подписки</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header class="top">
+      <div class="summary" id="summary"></div>
+      <nav class="tabs">
+        <button data-tab="subs" class="active">Подписки</button>
+        <button data-tab="cards">Карты</button>
+        <button data-tab="settings">Настройки</button>
+      </nav>
+    </header>
+
+    <main>
+      <section id="tab-subs" class="tab active">
+        <div id="subs-list" class="list"></div>
+      </section>
+      <section id="tab-cards" class="tab">
+        <div id="cards-list" class="list"></div>
+      </section>
+      <section id="tab-settings" class="tab">
+        <form id="settings-form" class="form">
+          <label>Часовой пояс
+            <input name="tz" list="tz-list" required autocomplete="off">
+            <datalist id="tz-list"></datalist>
+            <button type="button" class="link" id="tz-detect">Определить автоматически</button>
+          </label>
+          <label>Время напоминаний
+            <input name="notify_time" type="time" required>
+          </label>
+          <label>Напоминать за (дней), по умолчанию
+            <input name="default_reminders" placeholder="3, 1" inputmode="numeric">
+            <small>Через запятую. 0 — в день списания.</small>
+          </label>
+          <button class="primary" type="submit">Сохранить</button>
+        </form>
+      </section>
+    </main>
+
+    <button class="fab" id="fab" aria-label="Добавить">+</button>
+  </div>
+
+  <div class="sheet-backdrop" id="backdrop" hidden></div>
+
+  <div class="sheet" id="sub-sheet" hidden>
+    <h2 id="sub-title">Подписка</h2>
+    <form id="sub-form" class="form">
+      <label>Название <input name="name" required maxlength="60" placeholder="Netflix"></label>
+      <div class="row">
+        <label class="grow">Сумма <input name="amount" required inputmode="decimal" placeholder="9.99"></label>
+        <label class="narrow">Валюта
+          <input name="currency" required list="cur-list" maxlength="3" placeholder="RUB" autocomplete="off">
+          <datalist id="cur-list"></datalist>
+        </label>
+      </div>
+      <label>Карта <select name="card_id"></select></label>
+      <label>Дата списания (ближайшая или первая) <input name="anchor" type="date" required></label>
+      <div class="row">
+        <label class="narrow">Каждые <input name="every" type="number" min="1" max="365" value="1" required></label>
+        <label class="grow">Период
+          <select name="unit">
+            <option value="month">мес.</option>
+            <option value="year">год</option>
+            <option value="week">нед.</option>
+            <option value="day">дн.</option>
+          </select>
+        </label>
+      </div>
+      <label class="check"><input type="checkbox" name="custom_rem"> Свои напоминания для этой подписки</label>
+      <label id="rem-wrap" hidden>Напоминать за (дней)
+        <input name="reminders" placeholder="7, 1" inputmode="numeric">
+      </label>
+      <label>Заметка <input name="note" maxlength="200" placeholder="Семейный тариф"></label>
+      <label class="check"><input type="checkbox" name="active" checked> Активна</label>
+      <div class="actions">
+        <button class="danger" type="button" id="sub-delete">Удалить</button>
+        <button class="primary" type="submit">Сохранить</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="sheet" id="card-sheet" hidden>
+    <h2 id="card-title">Карта</h2>
+    <form id="card-form" class="form">
+      <label>Название <input name="name" required maxlength="40" placeholder="Тинькофф"></label>
+      <label>Последние 4 цифры <input name="last4" inputmode="numeric" maxlength="4" pattern="\d{0,4}" placeholder="1234"></label>
+      <label>Цвет
+        <div class="swatches" id="swatches"></div>
+        <input type="hidden" name="color">
+      </label>
+      <div class="actions">
+        <button class="danger" type="button" id="card-delete">Удалить</button>
+        <button class="primary" type="submit">Сохранить</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="denied" id="denied" hidden>
+    <h2>Нет доступа</h2>
+    <p id="denied-text">Открой приложение из Telegram-бота.</p>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
