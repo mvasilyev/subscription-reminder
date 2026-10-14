@@ -87,3 +87,4 @@ button.link { background: none; border: 0; color: var(--link); padding: 2px 0; a
   justify-content: center; text-align: center; padding: 24px; z-index: 20; }
 .denied p { color: var(--hint); }
 [hidden] { display: none !important; }
+button:disabled { opacity: .5; }

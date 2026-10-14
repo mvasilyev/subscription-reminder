@@ -140,6 +140,7 @@ function openSub(id) {
   // показываем ближайшую дату, но если её не трогали — сохраняем исходный якорь (31-е число не «съедет» на 28-е)
   f.anchor.dataset.shown = f.anchor.value;
   f.anchor.dataset.orig = s?.anchor ?? "";
+  f.anchor.dataset.period = s ? `${s.every}:${s.unit}` : "";
   f.every.value = s?.every ?? 1;
   f.unit.value = s?.unit ?? "month";
   f.custom_rem.checked = s ? s.reminders !== null : false;
@@ -189,8 +190,30 @@ $("#swatches").addEventListener("click", (e) => {
 });
 $("#sub-form").custom_rem.addEventListener("change", (e) => ($("#rem-wrap").hidden = !e.target.checked));
 
-$("#sub-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
+// исходный якорь сохраняем, только если не меняли ни дату, ни период — иначе показанная дата и есть новый якорь
+function keepAnchor(f) {
+  const d = f.anchor.dataset;
+  return d.orig && f.anchor.value === d.shown && `${f.every.value}:${f.unit.value}` === d.period;
+}
+
+// блокирует кнопку отправки на время запроса — двойной тап не создаст дубль
+function guarded(handler) {
+  return async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector("button[type=submit]");
+    if (btn.disabled) return;
+    btn.disabled = true;
+    try {
+      await handler(e);
+    } catch {
+      // ошибку уже показал api()
+    } finally {
+      btn.disabled = false;
+    }
+  };
+}
+
+$("#sub-form").addEventListener("submit", guarded(async (e) => {
   const f = e.target;
   const amount = Number(String(f.amount.value).replace(",", ".").replace(/\s/g, ""));
   if (!(amount > 0)) return alertMsg("Сумма должна быть больше нуля");
@@ -199,7 +222,7 @@ $("#sub-form").addEventListener("submit", async (e) => {
     amount,
     currency: f.currency.value.trim().toUpperCase(),
     card_id: f.card_id.value ? Number(f.card_id.value) : null,
-    anchor: f.anchor.value === f.anchor.dataset.shown && f.anchor.dataset.orig ? f.anchor.dataset.orig : f.anchor.value,
+    anchor: keepAnchor(f) ? f.anchor.dataset.orig : f.anchor.value,
     unit: f.unit.value,
     every: Number(f.every.value),
     reminders: f.custom_rem.checked ? parseDays(f.reminders.value) : null,
@@ -211,10 +234,9 @@ $("#sub-form").addEventListener("submit", async (e) => {
   haptic("medium");
   closeSheets();
   load();
-});
+}));
 
-$("#card-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
+$("#card-form").addEventListener("submit", guarded(async (e) => {
   const f = e.target;
   const body = { name: f.name.value.trim(), last4: f.last4.value.trim(), color: f.color.value };
   if (editing.id) await api("PUT", `/api/cards/${editing.id}`, body);
@@ -222,7 +244,7 @@ $("#card-form").addEventListener("submit", async (e) => {
   haptic("medium");
   closeSheets();
   load();
-});
+}));
 
 $("#sub-delete").addEventListener("click", async () => {
   if (!(await confirmMsg("Удалить подписку?"))) return;
@@ -237,14 +259,13 @@ $("#card-delete").addEventListener("click", async () => {
   load();
 });
 
-$("#settings-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
+$("#settings-form").addEventListener("submit", guarded(async (e) => {
   const f = e.target;
   await api("PUT", "/api/settings", { tz: f.tz.value.trim(), notify_time: f.notify_time.value, default_reminders: parseDays(f.default_reminders.value) });
   haptic("medium");
   tg?.showPopup ? tg.showPopup({ message: "Сохранено" }) : null;
   load();
-});
+}));
 $("#tz-detect").addEventListener("click", () => ($("#settings-form").tz.value = Intl.DateTimeFormat().resolvedOptions().timeZone));
 
 // --- init ---

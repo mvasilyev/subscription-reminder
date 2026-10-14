@@ -1,5 +1,5 @@
 """Общая логика поверх БД: ближайшие списания, сводка, какие напоминания пора слать."""
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from .billing import monthly_equivalent, next_charge, parse_reminders
@@ -51,10 +51,13 @@ def due_reminders(user: dict, subs: list[dict], now: datetime) -> list[tuple[dic
     for sub in subs:
         if not sub["active"]:
             continue
-        nxt = next_charge(date.fromisoformat(sub["anchor"]), sub["unit"], sub["every"], today)
-        left = (nxt - today).days
-        if left in effective_reminders(sub, user):
-            due.append((sub, nxt, left))
+        anchor = date.fromisoformat(sub["anchor"])
+        # «за N дней» может быть длиннее периода (ежедневная подписка, напоминание за 3 дня),
+        # поэтому проверяем не ближайшее списание, а есть ли списание ровно через N дней
+        for left in effective_reminders(sub, user):
+            target = today + timedelta(days=left)
+            if next_charge(anchor, sub["unit"], sub["every"], target) == target:
+                due.append((sub, target, left))
     return due
 
 

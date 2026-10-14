@@ -37,7 +37,8 @@ def monthly_equivalent(amount: float, unit: str, every: int) -> float:
 
 
 def parse_reminders(raw: str | None) -> list[int] | None:
-    if raw is None or raw == "":
+    """None — наследовать настройки пользователя, "" — явно без напоминаний."""
+    if raw is None:
         return None
     return sorted({int(x) for x in raw.split(",") if x.strip() != ""}, reverse=True)
 

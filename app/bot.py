@@ -46,6 +46,8 @@ async def setup_bot(bot: Bot, cfg: Config) -> None:
 
 def create_router(db: Database, cfg: Config) -> Router:
     router = Router()
+    # в группах бот молчит: /next и /users не должны светить данные посторонним
+    router.message.filter(F.chat.type == "private")
 
     async def allowed(message: Message) -> dict | None:
         user = await db.touch_user(message.from_user.id, full_name(message.from_user))
@@ -53,8 +55,10 @@ def create_router(db: Database, cfg: Config) -> Router:
             return user
         await message.answer(
             f"Это приватный бот. Доступ выдаёт владелец.\nТвой ID: <code>{user['id']}</code>\n"
-            "Запрос на доступ уже отправлен."
+            "Запрос на доступ отправлен."
         )
+        if not await db.mark_requested(user["id"]):
+            return None  # владельцу уже писали — не спамим повторными /start
         kb = InlineKeyboardMarkup(
             inline_keyboard=[[
                 InlineKeyboardButton(text="✅ Разрешить", callback_data=f"allow:{user['id']}"),

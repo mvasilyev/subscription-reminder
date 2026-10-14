@@ -33,3 +33,18 @@ def test_day_of_charge():
 
 def test_inactive_skipped():
     assert due_reminders(USER, [sub(active=0)], at(11)) == []
+
+
+def test_reminder_longer_than_period_daily():
+    # ежедневная подписка: «за 3 дня» и «за 1 день» должны срабатывать каждый день
+    daily = sub(anchor="2026-01-01", unit="day")
+    assert sorted(left for _, _, left in due_reminders(USER, [daily], at(11))) == [1, 3]
+
+
+def test_reminder_equal_to_period_weekly():
+    weekly = sub(anchor="2026-09-02", unit="week", reminders="7")  # среды; 14.10 — среда
+    assert [(d.isoformat(), left) for _, d, left in due_reminders(USER, [weekly], at(11))] == [("2026-10-21", 7)]
+
+
+def test_explicit_empty_reminders_disable():
+    assert due_reminders(USER, [sub(reminders="")], at(11)) == []

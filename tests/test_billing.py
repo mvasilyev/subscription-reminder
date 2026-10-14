@@ -41,3 +41,12 @@ def test_next_charge_weeks_days():
 def test_monthly_equivalent():
     assert monthly_equivalent(120, "year", 1) == 10
     assert monthly_equivalent(30, "month", 3) == 10
+
+
+def test_parse_reminders_inherit_vs_empty():
+    from app.billing import format_reminders, parse_reminders
+
+    assert parse_reminders(None) is None
+    assert parse_reminders("") == []
+    assert parse_reminders(format_reminders([])) == []
+    assert parse_reminders("1,3,3") == [3, 1]

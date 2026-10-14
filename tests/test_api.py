@@ -66,3 +66,10 @@ async def test_delete_card_keeps_sub(client):
     c.post("/api/subs", headers=h(ADMIN), json={**SUB, "card_id": card["id"]})
     c.delete(f"/api/cards/{card['id']}", headers=h(ADMIN))
     assert c.get("/api/state", headers=h(ADMIN)).json()["subs"][0]["card_id"] is None
+
+
+async def test_empty_custom_reminders_roundtrip(client):
+    c, _ = client
+    c.post("/api/subs", headers=h(ADMIN), json={**SUB, "reminders": []})
+    s = c.get("/api/state", headers=h(ADMIN)).json()["subs"][0]
+    assert (s["reminders"], s["effective_reminders"]) == ([], [])

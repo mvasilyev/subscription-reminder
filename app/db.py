@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
     tz                TEXT NOT NULL,
     notify_time       TEXT NOT NULL DEFAULT '10:00',
     default_reminders TEXT NOT NULL DEFAULT '3,1',
+    requested_at      TEXT,
     created_at        TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE TABLE IF NOT EXISTS cards (
@@ -65,7 +66,13 @@ class Database:
         await self.conn.execute("PRAGMA foreign_keys = ON")
         await self.conn.execute("PRAGMA journal_mode = WAL")
         await self.conn.executescript(SCHEMA)
+        await self._migrate()
         await self.conn.commit()
+
+    async def _migrate(self) -> None:
+        cols = {r["name"] for r in await self._all("PRAGMA table_info(users)")}
+        if "requested_at" not in cols:
+            await self.conn.execute("ALTER TABLE users ADD COLUMN requested_at TEXT")
 
     async def close(self) -> None:
         if self.conn:
@@ -96,6 +103,9 @@ class Database:
         return await self._one("SELECT * FROM users WHERE id = ?", user_id)
 
     async def touch_user(self, user_id: int, name: str) -> dict:
+        user = await self.get_user(user_id)
+        if user and user["name"] == name:
+            return user
         await self.conn.execute(
             "INSERT INTO users (id, name, tz) VALUES (?, ?, ?) "
             "ON CONFLICT(id) DO UPDATE SET name = excluded.name",
@@ -111,6 +121,13 @@ class Database:
             (user_id, self.default_tz, int(allowed)),
         )
         await self.conn.commit()
+
+    async def mark_requested(self, user_id: int) -> bool:
+        """True, если это первый запрос доступа от пользователя."""
+        n = await self._exec(
+            "UPDATE users SET requested_at = datetime('now') WHERE id = ? AND requested_at IS NULL", user_id
+        )
+        return n == 1
 
     async def list_users(self) -> list[dict]:
         return await self._all("SELECT * FROM users ORDER BY allowed DESC, id")
